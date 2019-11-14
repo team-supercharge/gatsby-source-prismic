@@ -18,15 +18,26 @@ export const sourceNodes = async (gatsby, pluginOptions) => {
     shouldNormalizeImage = () => true,
   } = pluginOptions
 
-  const { documents } = await fetchData({
-    repositoryName,
-    accessToken,
-    fetchLinks,
-    lang,
-  })
+  const languages = Array.isArray(lang) ? lang : [lang]
+
+  const data = await Promise.all(
+    languages.map(language =>
+      fetchData({
+        repositoryName,
+        accessToken,
+        fetchLinks,
+        lang: language,
+      }),
+    ),
+  )
+
+  const allDocuments = data.reduce(
+    (accumulator, { documents }) => accumulator.concat(documents),
+    [],
+  )
 
   await Promise.all(
-    documents.map(async doc => {
+    allDocuments.map(async doc => {
       const Node = createNodeFactory(doc.type, async node => {
         node.dataString = JSON.stringify(node.data)
         node.data = await normalizeFields({
